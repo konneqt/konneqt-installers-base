@@ -11,6 +11,16 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.Terminal.Signal;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+
+
 import java.io.IOException;
 
 @Command(name = "menu", mixinStandardHelpOptions = true, description = "Konneqt CLI with ASCII Art and Colors")
@@ -52,7 +62,7 @@ public class KonneqtCLI implements Runnable {
             while (running) {
                 System.out.println(ANSI_CYAN + "\n=== Select one of the options bellow ===" + ANSI_RESET);
                 System.out.println(ANSI_GREEN + "1. Check Docker Installation" + ANSI_RESET);
-                System.out.println(ANSI_YELLOW + "2. Show Date & Time" + ANSI_RESET);
+                System.out.println(ANSI_YELLOW + "2. Download the Product" + ANSI_RESET);
                 System.out.println(ANSI_RED + "3. Exit" + ANSI_RESET);
 
                 try {
@@ -63,7 +73,8 @@ public class KonneqtCLI implements Runnable {
                         System.out.println(ANSI_YELLOW + DockerCheck.execute() + ANSI_RESET);
                             break;
                         case "2":
-                            System.out.println(ANSI_YELLOW + "📅 Date & Time: " + java.time.LocalDateTime.now() + ANSI_RESET);
+                             System.out.println(ANSI_YELLOW + FileDownloader.execute("https://releases.ubuntu.com/24.04.1/ubuntu-24.04.1-desktop-amd64.iso", "sample.iso") + ANSI_RESET);
+                            //System.out.println(ANSI_YELLOW + "📅 Date & Time: " + java.time.LocalDateTime.now() + ANSI_RESET);
                             break;
                         case "3":
                             System.out.println(ANSI_RED + "👋 Exiting..." + ANSI_RESET);
@@ -138,5 +149,41 @@ class DockerCheck {
 
         }
     }
+
+}
+
+class FileDownloader {
+
+    public static String execute(String fileURL, String savePath) throws IOException {
+        System.out.println("🔄 Downloading: " + fileURL);
+
+        URL url = new URL(fileURL);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        int fileSize = connection.getContentLength();
+
+        try (InputStream in = connection.getInputStream();
+             FileOutputStream out = new FileOutputStream(savePath)) {
+
+            byte[] buffer = new byte[1024]; // 1 KB buffer (make it larger for larger files) 
+            int bytesRead;
+            int chunkSize = 1024000; // Print a dot for every 10 KB / 10240 = 10 bytes = 
+            int totalRead = 0;
+
+            System.out.print("📥 Progress: ");
+
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+                totalRead += bytesRead;
+
+                if (totalRead % chunkSize == 0) {
+                    System.out.print("┃"); // Print dot for every 10 KB downloaded
+                    System.out.flush(); // Flush output to ensure dots appear immediately
+                }
+            }
+        }
+
+        return "\n✅ Download completed: " + savePath;
+    }
+
 
 }
